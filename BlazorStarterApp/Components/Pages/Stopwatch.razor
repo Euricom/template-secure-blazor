@@ -1,0 +1,97 @@
+@page "/stopwatch"
+@using System.Security.Claims
+@using System.Timers
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@implements IDisposable
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+
+
+<h3>Stopwatch</h3>
+<p>You are logged in as @_authenticatedUser.Identity?.Name</p>
+<div class="stopwatch-container">
+    <div class="stopwatch-display">@_timeDisplay</div>
+    <div class="stopwatch-controls">
+        <button class="btn btn-primary" @onclick="StartStop">@_buttonText</button>
+        <button class="btn btn-secondary" @onclick="Reset">Reset</button>
+    </div>
+</div>
+
+@code {
+    private Timer? _timer;
+    private DateTime _startTime;
+    private TimeSpan _elapsedTime;
+    private bool _isRunning = false;
+    private string _timeDisplay = "00:00:00.000";
+    private string _buttonText = "Start";
+    private ClaimsPrincipal? _authenticatedUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _authenticatedUser = authState.User;
+
+        _timer = new Timer(10); // Update every 10 milliseconds
+        _timer.Elapsed += OnTimerElapsed;
+    }
+
+    private void StartStop()
+    {
+        if (_isRunning)
+        {
+            _timer?.Stop();
+            _buttonText = "Start";
+        }
+        else
+        {
+            _startTime = DateTime.Now - _elapsedTime;
+            _timer?.Start();
+            _buttonText = "Stop";
+        }
+        _isRunning = !_isRunning;
+    }
+
+    private void Reset()
+    {
+        _timer?.Stop();
+        _elapsedTime = TimeSpan.Zero;
+        _isRunning = false;
+        _buttonText = "Start";
+        _timeDisplay = "00:00:00.000";
+        StateHasChanged();
+    }
+
+    private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        _elapsedTime = DateTime.Now - _startTime;
+        _timeDisplay = $"{_elapsedTime:hh\\:mm\\:ss\\.fff}";
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}
+
+<style>
+    .stopwatch-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    .stopwatch-display {
+        font-size: 3em;
+        margin-bottom: 20px;
+        font-family: 'Courier New', Courier, monospace; /* Classic digital look */
+    }
+
+    .stopwatch-controls button {
+        margin: 0 5px;
+    }
+</style>

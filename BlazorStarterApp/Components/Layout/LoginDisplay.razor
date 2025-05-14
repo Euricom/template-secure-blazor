@@ -1,0 +1,57 @@
+@inject NavigationManager NavigationManager
+@inject IHttpContextAccessor HttpContextAccessor
+@rendermode InteractiveServer
+
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center">
+            @if (!string.IsNullOrEmpty(GetProfileImageUrl(context.User)))
+            {
+                <img src="@GetProfileImageUrl(context.User)" alt="Profile" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" />
+            }
+            else
+            {
+                <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary" style="width: 32px; height: 32px;">
+                    <span class="text-white">@GetInitials(context.User.Identity!.Name)</span>
+                </div>
+            }
+            <strong>Hello, @context.User.Identity!.Name</strong>
+            <button class="nav-link btn btn-link" @onclick="Logout">Logout</button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <a href="Account/LogIn">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private void Logout()
+    {
+        // Navigate to the logout endpoint
+        NavigationManager.NavigateTo("/account/logout", forceLoad: true);
+    }
+    
+    private string? GetProfileImageUrl(System.Security.Claims.ClaimsPrincipal user)
+    {
+        // Try to get profile image from common claim types
+        return user.FindFirst("picture")?.Value
+            ?? user.FindFirst("image")?.Value
+            ?? user.FindFirst("profile_image")?.Value;
+    }
+    
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "?";
+            
+        var parts = name.Split(' ');
+        if (parts.Length > 1)
+            return $"{parts[0][0]}{parts[^1][0]}";
+        
+        if (name.Length > 0)
+            return name[0].ToString().ToUpper();
+            
+        return "?";
+    }
+}
